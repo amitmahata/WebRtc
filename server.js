@@ -19,6 +19,8 @@ app.get('/health', (req, res) => {
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
+app.use('/js', express.static(path.join(__dirname, 'public', 'js')));
 
 // Route for viewer page — serves view.html for any /view/:roomId URL
 app.get('/view/:roomId', (req, res) => {
