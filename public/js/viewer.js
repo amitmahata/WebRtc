@@ -28,14 +28,30 @@
   let peerConnection = null;
   let remoteStream = null;
   let hasAudio = false;
+  const candidateQueue = [];
 
+  // STUN + OpenRelay TURN servers for cross-network / symmetric NAT traversal
   const ICE_CONFIG = {
     iceServers: [
+      // Public Google STUN servers
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' }
-    ]
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:relay.metered.ca:80' },
+
+      // Free OpenRelay TURN servers (UDP, TCP, TLS)
+      {
+        urls: [
+          'turn:relay.metered.ca:80',
+          'turn:relay.metered.ca:443',
+          'turn:relay.metered.ca:443?transport=tcp'
+        ],
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
+    ],
+    iceCandidatePoolSize: 10
   };
 
   // ── DOM Elements ─────────────────────────────────────────────────────────
@@ -57,7 +73,7 @@
     showError('Invalid link. No room ID found in the URL.');
   }
 
-  // ── Join Room ────────────────────────────────────────────────────────────
+  // ── Join Room ────────────────────────────────────────────────────
   function joinRoom(id) {
     statusText.textContent = 'Joining the screen sharing session...';
 
@@ -81,7 +97,7 @@
 
       // When remote track arrives, add it to our stream
       peerConnection.ontrack = (event) => {
-        console.log(`Received track: kind=${event.track.kind}, id=${event.track.id}, readyState=${event.track.readyState}`);
+        console.log(`Received track: kind=${event.track.kind}, id=${event.track.id}`);
 
         // Add the track to our combined stream
         remoteStream.addTrack(event.track);
@@ -98,14 +114,12 @@
         // Force play (video starts muted for autoplay compliance)
         viewerVideo.play().then(() => {
           console.log('Video playback started successfully');
-          // Show unmute banner if there's audio
           if (hasAudio) {
             unmuteBanner.classList.remove('hidden');
             muteToggleBtn.textContent = '🔇';
           }
         }).catch(err => {
           console.error('Autoplay failed:', err);
-          // Even muted play can fail in some edge cases — show a play button
           unmuteBanner.classList.remove('hidden');
           unmuteBtn.textContent = '▶ Click to Play';
         });
@@ -113,7 +127,6 @@
         // Update page title
         document.title = 'ScreenCast — Live Stream';
 
-        // Listen for track ending
         event.track.onended = () => {
           console.log(`Track ended: ${event.track.kind}`);
         };
@@ -132,11 +145,11 @@
       // Log connection state
       peerConnection.onconnectionstatechange = () => {
         const state = peerConnection.connectionState;
-        console.log(`Connection state: ${state}`);
+        console.log(`📡 Peer connection state: ${state}`);
         if (state === 'connected') {
-          console.log('WebRTC connection established!');
+          console.log('✨ WebRTC connection established successfully!');
         } else if (state === 'failed') {
-          showError('Connection failed. The presenter may have stopped sharing.');
+          showError('Connection failed across networks. Please refresh to retry.');
         } else if (state === 'disconnected') {
           console.log('Peer disconnected, waiting for reconnection...');
         }
@@ -144,6 +157,17 @@
 
       // Set remote description (the offer) and create an answer
       await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
+      // Process any buffered ICE candidates that arrived before the offer description was set
+      while (candidateQueue.length > 0) {
+        const cand = candidateQueue.shift();
+        try {
+          await peerConnection.addIceCandidate(new RTCIceCandidate(cand));
+        } catch (e) {
+          console.warn('Buffered candidate error:', e);
+        }
+      }
+
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
 
@@ -161,12 +185,17 @@
 
   // ── Receive ICE Candidate from Presenter ─────────────────────────────────
   socket.on('ice-candidate', async ({ senderId, candidate }) => {
-    if (peerConnection) {
+    if (!candidate) return;
+
+    if (peerConnection && peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
       try {
         await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
       } catch (err) {
         console.error('ICE candidate error:', err);
       }
+    } else {
+      // Buffer candidate until remote description is set
+      candidateQueue.push(candidate);
     }
   });
 

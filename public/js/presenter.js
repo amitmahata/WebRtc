@@ -24,14 +24,30 @@
   // ── State ────────────────────────────────────────────────────────────────
   let localStream = null;
   const peerConnections = new Map(); // viewerId → RTCPeerConnection
+  const candidateQueues = new Map(); // viewerId → Array<RTCIceCandidateInit>
 
+  // STUN + OpenRelay TURN servers for cross-network / symmetric NAT traversal
   const ICE_CONFIG = {
     iceServers: [
+      // Public Google STUN servers
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' }
-    ]
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:relay.metered.ca:80' },
+
+      // Free OpenRelay TURN servers (UDP, TCP, TLS)
+      {
+        urls: [
+          'turn:relay.metered.ca:80',
+          'turn:relay.metered.ca:443',
+          'turn:relay.metered.ca:443?transport=tcp'
+        ],
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
+    ],
+    iceCandidatePoolSize: 10
   };
 
   // ── DOM Elements ─────────────────────────────────────────────────────────
@@ -110,6 +126,7 @@
     try {
       const pc = new RTCPeerConnection(ICE_CONFIG);
       peerConnections.set(viewerId, pc);
+      candidateQueues.set(viewerId, []);
 
       // Add all local tracks (video + audio) to this connection
       localStream.getTracks().forEach(track => {
@@ -128,10 +145,14 @@
 
       // Log connection state for debugging
       pc.onconnectionstatechange = () => {
-        console.log(`Peer ${viewerId}: ${pc.connectionState}`);
-        if (pc.connectionState === 'failed') {
+        console.log(`📡 Peer ${viewerId} connection state: ${pc.connectionState}`);
+        if (pc.connectionState === 'connected') {
+          console.log(`✨ Connected to viewer ${viewerId} successfully!`);
+        } else if (pc.connectionState === 'failed') {
+          console.warn(`Connection failed with ${viewerId}, closing.`);
           pc.close();
           peerConnections.delete(viewerId);
+          candidateQueues.delete(viewerId);
         }
       };
 
@@ -155,6 +176,17 @@
     if (pc && pc.signalingState === 'have-local-offer') {
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
+
+        // Flush any buffered ICE candidates that arrived before the answer
+        const queue = candidateQueues.get(senderId) || [];
+        while (queue.length > 0) {
+          const candidate = queue.shift();
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (e) {
+            console.warn('Buffered candidate error:', e);
+          }
+        }
       } catch (err) {
         console.error(`Failed to set answer from ${senderId}:`, err);
       }
@@ -163,13 +195,21 @@
 
   // ── Receive ICE Candidate from Viewer ────────────────────────────────────
   socket.on('ice-candidate', async ({ senderId, candidate }) => {
+    if (!candidate) return;
     const pc = peerConnections.get(senderId);
-    if (pc) {
+
+    if (pc && pc.remoteDescription && pc.remoteDescription.type) {
       try {
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
       } catch (err) {
         console.error(`ICE candidate error from ${senderId}:`, err);
       }
+    } else {
+      // Buffer until remote answer is applied
+      if (!candidateQueues.has(senderId)) {
+        candidateQueues.set(senderId, []);
+      }
+      candidateQueues.get(senderId).push(candidate);
     }
   });
 
