@@ -30,26 +30,16 @@
   let hasAudio = false;
   const candidateQueue = [];
 
-  // STUN + OpenRelay TURN servers for cross-network / symmetric NAT traversal
+  // STUN servers for cross-network / symmetric NAT traversal
   const ICE_CONFIG = {
     iceServers: [
-      // Public Google STUN servers
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:relay.metered.ca:80' },
-
-      // Free OpenRelay TURN servers (UDP, TCP, TLS)
-      {
-        urls: [
-          'turn:relay.metered.ca:80',
-          'turn:relay.metered.ca:443',
-          'turn:relay.metered.ca:443?transport=tcp'
-        ],
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      }
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      { urls: 'stun:global.stun.twilio.com:3478' }
     ],
     iceCandidatePoolSize: 10
   };
@@ -142,14 +132,37 @@
         }
       };
 
-      // Log connection state
+      // Log & manage connection state transitions gracefully
+      let failTimer = null;
+
       peerConnection.onconnectionstatechange = () => {
         const state = peerConnection.connectionState;
         console.log(`📡 Peer connection state: ${state}`);
+
         if (state === 'connected') {
           console.log('✨ WebRTC connection established successfully!');
+          if (failTimer) {
+            clearTimeout(failTimer);
+            failTimer = null;
+          }
+          // Ensure video view is shown and error/loading states are hidden
+          connectingEl.classList.add('hidden');
+          endedEl.classList.add('hidden');
+          streamContainer.classList.remove('hidden');
+        } else if (state === 'connecting') {
+          if (failTimer) {
+            clearTimeout(failTimer);
+            failTimer = null;
+          }
         } else if (state === 'failed') {
-          showError('Connection failed across networks. Please refresh to retry.');
+          // Give candidates a 6-second grace window to negotiate or recover
+          if (!failTimer) {
+            failTimer = setTimeout(() => {
+              if (peerConnection && peerConnection.connectionState === 'failed') {
+                showError('Connection failed across networks. Please refresh to retry.');
+              }
+            }, 6000);
+          }
         } else if (state === 'disconnected') {
           console.log('Peer disconnected, waiting for reconnection...');
         }

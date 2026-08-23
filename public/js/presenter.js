@@ -26,26 +26,16 @@
   const peerConnections = new Map(); // viewerId → RTCPeerConnection
   const candidateQueues = new Map(); // viewerId → Array<RTCIceCandidateInit>
 
-  // STUN + OpenRelay TURN servers for cross-network / symmetric NAT traversal
+  // STUN servers for cross-network / symmetric NAT traversal
   const ICE_CONFIG = {
     iceServers: [
-      // Public Google STUN servers
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:relay.metered.ca:80' },
-
-      // Free OpenRelay TURN servers (UDP, TCP, TLS)
-      {
-        urls: [
-          'turn:relay.metered.ca:80',
-          'turn:relay.metered.ca:443',
-          'turn:relay.metered.ca:443?transport=tcp'
-        ],
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      }
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
+      { urls: 'stun:global.stun.twilio.com:3478' }
     ],
     iceCandidatePoolSize: 10
   };
@@ -143,16 +133,34 @@
         }
       };
 
-      // Log connection state for debugging
+      // Log & manage connection state transitions gracefully
+      let failTimer = null;
+
       pc.onconnectionstatechange = () => {
-        console.log(`📡 Peer ${viewerId} connection state: ${pc.connectionState}`);
-        if (pc.connectionState === 'connected') {
+        const state = pc.connectionState;
+        console.log(`📡 Peer ${viewerId} connection state: ${state}`);
+        if (state === 'connected') {
           console.log(`✨ Connected to viewer ${viewerId} successfully!`);
-        } else if (pc.connectionState === 'failed') {
-          console.warn(`Connection failed with ${viewerId}, closing.`);
-          pc.close();
-          peerConnections.delete(viewerId);
-          candidateQueues.delete(viewerId);
+          if (failTimer) {
+            clearTimeout(failTimer);
+            failTimer = null;
+          }
+        } else if (state === 'connecting') {
+          if (failTimer) {
+            clearTimeout(failTimer);
+            failTimer = null;
+          }
+        } else if (state === 'failed') {
+          if (!failTimer) {
+            failTimer = setTimeout(() => {
+              if (pc.connectionState === 'failed') {
+                console.warn(`Connection failed with ${viewerId}, closing.`);
+                pc.close();
+                peerConnections.delete(viewerId);
+                candidateQueues.delete(viewerId);
+              }
+            }, 6000);
+          }
         }
       };
 
