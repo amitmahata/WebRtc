@@ -54,6 +54,24 @@
   const unmuteBanner    = document.getElementById('unmute-banner');
   const unmuteBtn       = document.getElementById('unmute-btn');
   const muteToggleBtn   = document.getElementById('mute-toggle-btn');
+  const chatControlBtn  = document.getElementById('chat-control-btn');
+  const chatToggleBtn   = document.getElementById('chat-toggle-btn');
+
+  // Chat Drawer Elements
+  const chatDrawer           = document.getElementById('chat-drawer');
+  const chatCloseBtn         = document.getElementById('chat-close-btn');
+  const chatForm             = document.getElementById('chat-form');
+  const chatInput            = document.getElementById('chat-input');
+  const chatMessagesEl       = document.getElementById('chat-messages');
+  const chatUnreadBadge      = document.getElementById('chat-unread');
+  const downloadTranscriptBtn = document.getElementById('download-transcript-btn');
+
+  // ── Chat State ───────────────────────────────────────────────────────────
+  let chatHistory = [];
+  let unreadCount = 0;
+  let isChatOpen = false;
+  const viewerNick = sessionStorage.getItem('instascreen_nick') || `Viewer-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+  sessionStorage.setItem('instascreen_nick', viewerNick);
 
   // ── Extract Room ID from URL ─────────────────────────────────────────────
   const pathParts = window.location.pathname.split('/view/');
@@ -73,6 +91,7 @@
         return;
       }
       statusText.textContent = 'Connected to room! Establishing peer stream...';
+      if (chatToggleBtn) chatToggleBtn.classList.remove('hidden');
     });
   }
 
@@ -100,6 +119,7 @@
         connectingEl.classList.add('hidden');
         endedEl.classList.add('hidden');
         streamContainer.classList.remove('hidden');
+        if (chatToggleBtn) chatToggleBtn.classList.remove('hidden');
 
         // Force play (video starts muted for autoplay compliance)
         viewerVideo.play().then(() => {
@@ -211,6 +231,138 @@
       candidateQueue.push(candidate);
     }
   });
+
+  // ── Real-Time Chat System ─────────────────────────────────────────────────
+  socket.on('chat-message', (data) => {
+    chatHistory.push(data);
+    appendChatMessage(data);
+
+    if (!isChatOpen) {
+      unreadCount++;
+      if (chatUnreadBadge) {
+        chatUnreadBadge.textContent = unreadCount;
+        chatUnreadBadge.classList.remove('hidden');
+      }
+    }
+  });
+
+  function appendChatMessage(data) {
+    const isSelf = data.senderId === socket.id;
+
+    // Remove empty state placeholder if present
+    const emptyEl = chatMessagesEl.querySelector('.chat-empty');
+    if (emptyEl) emptyEl.remove();
+
+    const msgEl = document.createElement('div');
+    msgEl.className = `msg-item ${isSelf ? 'msg-self' : 'msg-other'}`;
+
+    const isHost = data.role === 'presenter';
+    const senderDisplay = isSelf ? `You (${viewerNick})` : (isHost ? 'Host' : (data.senderName || 'Viewer'));
+
+    msgEl.innerHTML = `
+      <div class="msg-meta">
+        <span class="msg-sender ${isHost ? 'host-tag' : ''}">${escapeHTML(senderDisplay)}</span>
+        <span class="msg-time">${data.timestamp}</span>
+      </div>
+      <div class="msg-bubble">${escapeHTML(data.message)}</div>
+    `;
+
+    chatMessagesEl.appendChild(msgEl);
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  }
+
+  // Send message
+  chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = chatInput.value.trim();
+    if (!text || !socket.connected) return;
+
+    socket.emit('send-chat', {
+      message: text,
+      senderName: viewerNick
+    });
+
+    chatInput.value = '';
+    chatInput.focus();
+  });
+
+  // Toggle chat
+  function toggleChat() {
+    isChatOpen = !isChatOpen;
+    if (isChatOpen) {
+      chatDrawer.classList.remove('hidden');
+      unreadCount = 0;
+      if (chatUnreadBadge) {
+        chatUnreadBadge.textContent = '0';
+        chatUnreadBadge.classList.add('hidden');
+      }
+      chatInput.focus();
+      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    } else {
+      chatDrawer.classList.add('hidden');
+    }
+  }
+
+  if (chatControlBtn) chatControlBtn.addEventListener('click', toggleChat);
+  if (chatToggleBtn) chatToggleBtn.addEventListener('click', toggleChat);
+
+  chatCloseBtn.addEventListener('click', () => {
+    isChatOpen = false;
+    chatDrawer.classList.add('hidden');
+  });
+
+  // ── Download Chat Transcript ──────────────────────────────────────────────
+  downloadTranscriptBtn.addEventListener('click', () => {
+    downloadChatTranscript();
+  });
+
+  function downloadChatTranscript() {
+    if (chatHistory.length === 0) {
+      alert('No messages in chat history to export.');
+      return;
+    }
+
+    const currentRoom = roomId || 'session';
+    const timestampStr = new Date().toLocaleString();
+
+    let content = `====================================================\n`;
+    content += `InstaScreen Live Chat Transcript\n`;
+    content += `Room ID: ${currentRoom}\n`;
+    content += `Participant: ${viewerNick} (Viewer)\n`;
+    content += `Exported: ${timestampStr}\n`;
+    content += `Total Messages: ${chatHistory.length}\n`;
+    content += `====================================================\n\n`;
+
+    chatHistory.forEach((msg) => {
+      const sender = msg.role === 'presenter' ? `${msg.senderName} [Host]` : msg.senderName;
+      content += `[${msg.timestamp}] ${sender}: ${msg.message}\n`;
+    });
+
+    content += `\n====================================================\n`;
+    content += `End of Transcript - Generated by InstaScreen\n`;
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `instascreen-transcript-${currentRoom}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function escapeHTML(str) {
+    return str.replace(/[&<>'"]/g, 
+      tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag] || tag)
+    );
+  }
 
   // ── Stream Stopped ───────────────────────────────────────────────────────
   socket.on('sharing-stopped', () => {

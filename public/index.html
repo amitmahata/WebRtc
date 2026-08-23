@@ -114,6 +114,41 @@
     </main>
   </div>
 
+  <!-- Floating Chat Toggle Button -->
+  <button id="chat-toggle-btn" class="chat-toggle-btn hidden" title="Open Live Chat">
+    <span>💬 Live Chat</span>
+    <span id="chat-unread" class="chat-unread-badge hidden">0</span>
+  </button>
+
+  <!-- Chat Drawer Modal -->
+  <div id="chat-drawer" class="chat-drawer hidden">
+    <div class="chat-header">
+      <div class="chat-header-title">
+        <span>💬</span>
+        <span>Live Session Chat</span>
+      </div>
+      <div class="chat-header-actions">
+        <button id="download-transcript-btn" class="chat-action-btn" title="Download Chat Transcript">
+          <span>📥</span> Transcript
+        </button>
+        <button id="chat-close-btn" class="chat-close-btn" title="Close Chat">✕</button>
+      </div>
+    </div>
+
+    <div id="chat-messages" class="chat-messages">
+      <div class="chat-empty">
+        <div class="chat-empty-icon">💬</div>
+        <div>No messages yet</div>
+        <div style="font-size:0.75rem; color:var(--text-muted);">Say hello to your viewers!</div>
+      </div>
+    </div>
+
+    <form id="chat-form" class="chat-input-form">
+      <input type="text" id="chat-input" class="chat-input" placeholder="Type a message..." maxlength="500" autocomplete="off">
+      <button type="submit" class="chat-send-btn" title="Send message">➤</button>
+    </form>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="toast">
     <span class="toast-icon">✅</span>

@@ -98,6 +98,27 @@ io.on('connection', (socket) => {
     io.to(targetId).emit('ice-candidate', { senderId: socket.id, candidate });
   });
 
+  // ── Real-Time Chat Relay ──────────────────────────────────────────────────
+  socket.on('send-chat', ({ message, senderName }) => {
+    const roomId = socket.roomId;
+    if (!roomId || !message || typeof message !== 'string') return;
+
+    const trimmedMsg = message.trim();
+    if (!trimmedMsg) return;
+
+    const chatPayload = {
+      id: uuidv4(),
+      senderId: socket.id,
+      senderName: senderName || (socket.role === 'presenter' ? 'Host (Presenter)' : 'Viewer'),
+      role: socket.role || 'viewer',
+      message: trimmedMsg.substring(0, 500),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isoTime: new Date().toISOString()
+    };
+
+    io.to(roomId).emit('chat-message', chatPayload);
+  });
+
   // ── Presenter stops sharing ───────────────────────────────────────────────
   socket.on('stop-sharing', () => {
     const roomId = socket.roomId;
