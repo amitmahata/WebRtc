@@ -3,115 +3,270 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Share your screen instantly with anyone. No downloads, no sign-ups — just click, share, and send the link.">
-  <title>ScreenCast — Instant Screen Sharing</title>
+  <meta name="description" content="InstaScreen — Zero-meeting instant screen sharing. Share your screen or tabs in 1 click with a shareable link. No signups, no downloads.">
+  <title>InstaScreen — Instant Screen Sharing Without Meetings</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 </head>
 <body>
 
-  <!-- Animated Background -->
+  <!-- Animated High-Tech Glow Background -->
   <div class="bg-animation">
     <div class="bg-orb"></div>
     <div class="bg-orb"></div>
     <div class="bg-orb"></div>
+    <div class="bg-grid-overlay"></div>
   </div>
 
   <div class="app-container">
 
-    <!-- Header -->
+    <!-- Global Header -->
     <header class="app-header">
       <a href="/" class="logo">
-        <div class="logo-icon">🖥</div>
-        <div class="logo-text"><span>Screen</span>Cast</div>
+        <div class="logo-icon">⚡</div>
+        <div class="logo-text"><span>Insta</span>Screen</div>
       </a>
-      <div class="header-badge">
-        <span>⚡</span> Peer-to-Peer • Zero Latency
+      <div class="header-right">
+        <div class="header-badge">
+          <span class="live-pulse-dot"></span> No Meeting Needed
+        </div>
+        <a href="#how-it-works" class="header-link">How it works</a>
+        <a href="#features" class="header-link">Features</a>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
-      <div class="glass-card">
 
-        <!-- ═══ Pre-Share State ═══ -->
-        <div id="pre-share" class="pre-share">
-          <div class="hero-icon">🖥</div>
-          <h1 class="hero-title">Share Your Screen <span class="text-gradient">Instantly</span></h1>
-          <p class="hero-subtitle">
-            Share your browser tab, application window, or entire screen with anyone.
-            No downloads, no accounts — just a link.
-          </p>
+      <!-- ═══════════════════════ PRE-SHARE STATE (LANDING PAGE) ═══════════════════════ -->
+      <div id="pre-share" class="pre-share-wrapper">
+        
+        <!-- Hero Section: Split Grid -->
+        <section class="hero-split-grid">
+          
+          <!-- Left Column: Copy & Action -->
+          <div class="hero-copy-col">
+            <div class="hero-pill-badge">
+              <span class="badge-sparkle">✨</span>
+              <span>Pure WebRTC • Zero Lag • Free Forever</span>
+            </div>
 
-          <div class="features">
-            <div class="feature-chip">
-              <span class="icon">🖥</span> Screen & Tabs
+            <h1 class="hero-main-title">
+              Skip The Meeting. <br>
+              <span class="text-gradient">Just Share Your Screen.</span>
+            </h1>
+
+            <p class="hero-description">
+              Stream your browser tab, code editor, design file, or desktop directly to anyone via an instant link. 
+              <strong>No Zoom calls. No calendar invites. No software to install.</strong>
+            </p>
+
+            <!-- Feature Pills -->
+            <div class="hero-feature-tags">
+              <div class="feature-tag">
+                <span class="tag-icon">⚡</span> Sub-50ms Latency
+              </div>
+              <div class="feature-tag">
+                <span class="tag-icon">🔒</span> End-to-End Encrypted
+              </div>
+              <div class="feature-tag">
+                <span class="tag-icon">🔊</span> Tab Audio Capture
+              </div>
+              <div class="feature-tag">
+                <span class="tag-icon">💬</span> Real-Time Live Chat
+              </div>
             </div>
-            <div class="feature-chip">
-              <span class="icon">🔗</span> Shareable Link
-            </div>
-            <div class="feature-chip">
-              <span class="icon">🔊</span> Audio Support
-            </div>
-            <div class="feature-chip">
-              <span class="icon">👥</span> Multi-Viewer
+
+            <!-- Primary CTA -->
+            <div class="hero-cta-group">
+              <button id="start-btn" class="btn btn-primary btn-hero">
+                <span class="btn-icon-el">📺</span>
+                <span class="btn-text">Start Instant Share</span>
+                <span class="btn-arrow">→</span>
+              </button>
+              <div class="hero-trust-notes">
+                <span>✓ 100% Free</span>
+                <span>•</span>
+                <span>✓ No Sign-up</span>
+                <span>•</span>
+                <span>✓ 1-Click Link</span>
+              </div>
             </div>
           </div>
 
-          <button id="start-btn" class="btn btn-primary">
-            <span class="btn-icon-el">📺</span>
-            <span class="btn-text">Start Sharing</span>
-          </button>
-        </div>
+          <!-- Right Column: Dynamic Visual Showcase -->
+          <div class="hero-visual-col">
+            <div class="visual-card-frame">
+              <img src="/img/hero-illustration.jpg" alt="InstaScreen Real-Time Digital Screen Sharing" class="hero-visual-img" loading="eager">
+              <div class="visual-card-overlay"></div>
 
-        <!-- ═══ Active Share State ═══ -->
-        <div id="active-share" class="active-share">
+              <!-- Floating Live Data Chips -->
+              <div class="floating-chip chip-top-left">
+                <div class="chip-dot-green"></div>
+                <div class="chip-content">
+                  <span class="chip-title">Ultra HD Stream</span>
+                  <span class="chip-sub">60 FPS • 1080p WebRTC</span>
+                </div>
+              </div>
 
-          <!-- Live Header -->
-          <div class="live-header">
-            <div class="live-badge">
-              <div class="live-dot"></div>
-              LIVE
-            </div>
-            <div class="viewer-badge">
-              <span>👁</span>
-              <span><span id="viewer-count">0</span> viewer(s)</span>
+              <div class="floating-chip chip-bottom-left">
+                <span class="chip-icon">🔒</span>
+                <div class="chip-content">
+                  <span class="chip-title">Peer-to-Peer</span>
+                  <span class="chip-sub">Direct Encrypted Stream</span>
+                </div>
+              </div>
+
+              <div class="floating-chip chip-bottom-right">
+                <span class="chip-icon">💬</span>
+                <div class="chip-content">
+                  <span class="chip-title">Live Chat & Transcript</span>
+                  <span class="chip-sub">Instant 1-Click Export</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Preview -->
-          <div class="preview-wrapper">
+        </section>
+
+        <!-- 3-Step Process Section -->
+        <section id="how-it-works" class="steps-section">
+          <div class="section-header">
+            <div class="section-subtitle">Effortless Workflow</div>
+            <h2 class="section-title">How InstaScreen Works</h2>
+          </div>
+
+          <div class="steps-grid">
+            <div class="step-card">
+              <div class="step-num">01</div>
+              <div class="step-icon-box">🖥️</div>
+              <h3 class="step-title">Click & Select Screen</h3>
+              <p class="step-desc">Click "Start Instant Share" and choose any window, monitor, or specific Chrome tab with audio.</p>
+            </div>
+
+            <div class="step-card">
+              <div class="step-num">02</div>
+              <div class="step-icon-box">🔗</div>
+              <h3 class="step-title">Copy Shareable Link</h3>
+              <p class="step-desc">InstaScreen generates a unique, secure viewer link instantly. Paste it in Slack, WhatsApp, or Discord.</p>
+            </div>
+
+            <div class="step-card">
+              <div class="step-num">03</div>
+              <div class="step-icon-box">⚡</div>
+              <h3 class="step-title">Watch & Chat in Real-Time</h3>
+              <p class="step-desc">Your viewers open the link in any browser and watch live at zero latency without creating an account.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Feature Grid Section -->
+        <section id="features" class="features-section">
+          <div class="section-header">
+            <div class="section-subtitle">Engineered for Speed</div>
+            <h2 class="section-title">Built for Frictionless Collaboration</h2>
+          </div>
+
+          <div class="features-grid-cards">
+            <div class="feature-box">
+              <div class="feature-box-icon">🚀</div>
+              <h4>Direct P2P Streaming</h4>
+              <p>Media flows directly between browsers with minimal relay overhead, guaranteeing high frame rates and sharp fidelity.</p>
+            </div>
+
+            <div class="feature-box">
+              <div class="feature-box-icon">💬</div>
+              <h4>Real-Time In-Memory Chat</h4>
+              <p>Participants can chat and ask questions without saving data to any database, keeping discussions ephemeral and secure.</p>
+            </div>
+
+            <div class="feature-box">
+              <div class="feature-box-icon">📥</div>
+              <h4>1-Click Transcript Export</h4>
+              <p>Download the entire session chat history as a formatted text file at any time with a single click.</p>
+            </div>
+
+            <div class="feature-box">
+              <div class="feature-box-icon">🛡️</div>
+              <h4>Global NAT Traversal</h4>
+              <p>Equipped with multi-region STUN redundancy to connect across different cities, ISPs, and mobile networks seamlessly.</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+
+      <!-- ═══════════════════════ ACTIVE SHARE STATE (STUDIO DECK) ═══════════════════════ -->
+      <div id="active-share" class="active-share-deck">
+        <div class="studio-glass-panel">
+
+          <!-- Studio Header -->
+          <div class="studio-header">
+            <div class="studio-live-indicator">
+              <span class="live-rec-dot"></span>
+              <span class="live-rec-text">LIVE BROADCAST</span>
+            </div>
+            
+            <div class="studio-stats">
+              <div class="stat-pill">
+                <span class="stat-icon">👁️</span>
+                <span class="stat-text"><strong id="viewer-count">0</strong> viewer(s) connected</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Monitor -->
+          <div class="monitor-wrapper">
             <video id="preview-video" class="preview-video" autoplay muted playsinline></video>
-            <div class="preview-overlay">
-              <div class="preview-tag">Preview</div>
+            <div class="monitor-top-tag">
+              <span>●</span> ON AIR PREVIEW
             </div>
+            <div class="monitor-res-tag">1080p • 60fps</div>
           </div>
 
-          <!-- Shareable Link -->
-          <div class="share-section">
-            <div class="share-label">
-              <span>🔗</span> Shareable Link
+          <!-- Share Link Box -->
+          <div class="share-box-container">
+            <div class="share-box-label">
+              <span>🔗</span> Shareable Viewer Link
             </div>
-            <div class="share-input-group">
-              <input type="text" id="share-link" class="share-input" readonly>
-              <button id="copy-btn" class="btn btn-ghost btn-sm" title="Copy link">
-                📋 Copy
+            <div class="share-input-row">
+              <input type="text" id="share-link" class="share-url-input" readonly>
+              <button id="copy-btn" class="btn btn-primary btn-copy" title="Copy Link">
+                📋 Copy Link
               </button>
             </div>
+            <div class="share-quick-hint">
+              Send this link to anyone over Slack, Teams, or WhatsApp to let them view immediately.
+            </div>
           </div>
 
-          <!-- Actions -->
-          <div class="share-actions">
-            <button id="stop-btn" class="btn btn-danger">
-              <span class="btn-icon-el">⏹</span>
-              <span class="btn-text">Stop Sharing</span>
+          <!-- Broadcast Controls -->
+          <div class="broadcast-action-row">
+            <button id="stop-btn" class="btn btn-danger btn-stop">
+              <span>⏹</span> Stop Sharing
             </button>
           </div>
 
         </div>
-
       </div>
+
     </main>
+
+    <!-- Global Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <div class="footer-left">
+          <span>⚡ <strong>InstaScreen</strong> — Instant Screen Sharing</span>
+        </div>
+        <div class="footer-right">
+          <span>Peer-to-Peer WebRTC</span>
+          <span>•</span>
+          <span>Open Source</span>
+        </div>
+      </div>
+    </footer>
+
   </div>
 
   <!-- Floating Chat Toggle Button -->
