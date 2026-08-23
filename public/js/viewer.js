@@ -6,7 +6,23 @@
 (() => {
   'use strict';
 
-  const socket = io();
+  const socket = io({
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000
+  });
+
+  socket.on('connect', () => {
+    console.log('✅ Viewer connected to signaling server:', socket.id);
+    if (roomId) {
+      joinRoom(roomId);
+    }
+  });
+
+  socket.on('connect_error', (err) => {
+    console.warn('⚠️ Viewer socket connection error:', err);
+  });
 
   // ── State ────────────────────────────────────────────────────────────────
   let peerConnection = null;
@@ -39,8 +55,6 @@
 
   if (!roomId) {
     showError('Invalid link. No room ID found in the URL.');
-  } else {
-    joinRoom(roomId);
   }
 
   // ── Join Room ────────────────────────────────────────────────────────────
@@ -48,11 +62,11 @@
     statusText.textContent = 'Joining the screen sharing session...';
 
     socket.emit('join-room', id, (response) => {
-      if (response.error) {
+      if (response && response.error) {
         showError(response.error);
         return;
       }
-      statusText.textContent = 'Connected! Waiting for stream...';
+      statusText.textContent = 'Connected to room! Establishing peer stream...';
     });
   }
 

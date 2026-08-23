@@ -6,7 +6,20 @@
 (() => {
   'use strict';
 
-  const socket = io();
+  const socket = io({
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000
+  });
+
+  socket.on('connect', () => {
+    console.log('✅ Presenter connected to signaling server:', socket.id);
+  });
+
+  socket.on('connect_error', (err) => {
+    console.warn('⚠️ Presenter socket connection error:', err);
+  });
 
   // ── State ────────────────────────────────────────────────────────────────
   let localStream = null;
@@ -31,16 +44,36 @@
   const copyBtn       = document.getElementById('copy-btn');
   const viewerCountEl = document.getElementById('viewer-count');
 
+  // Helper to ensure socket is connected
+  function ensureConnected() {
+    return new Promise((resolve, reject) => {
+      if (socket.connected) return resolve();
+      const timeout = setTimeout(() => {
+        reject(new Error('Connecting to server took too long. Please refresh and try again.'));
+      }, 8000);
+      socket.once('connect', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+  }
+
   // ── Start Sharing ────────────────────────────────────────────────────────
   startBtn.addEventListener('click', async () => {
     try {
+      // Ensure socket is connected before requesting screen
+      if (!socket.connected) {
+        showToast('Connecting to server...', '⏳');
+        await ensureConnected();
+      }
+
       // Request screen/tab/window capture
       localStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           cursor: 'always',
-          displaySurface: 'browser' // Prefer tab, but user can choose
+          displaySurface: 'browser'
         },
-        audio: true // Capture tab audio if available
+        audio: true
       });
 
       // Show preview
@@ -54,6 +87,7 @@
         // Switch UI to active-share state
         preShareEl.classList.add('hidden');
         activeShareEl.classList.add('visible');
+        showToast('Screen sharing live! Link generated.', '🚀');
       });
 
       // If user clicks the browser-native "Stop sharing" button
@@ -62,10 +96,9 @@
       });
 
     } catch (err) {
-      // NotAllowedError = user cancelled the picker — don't show an error
       if (err.name !== 'NotAllowedError') {
         console.error('Screen share error:', err);
-        showToast('Failed to start screen sharing. Please try again.', '❌');
+        showToast(err.message || 'Failed to start screen sharing. Please try again.', '❌');
       }
     }
   });
