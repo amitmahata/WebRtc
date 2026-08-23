@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Share your screen instantly with anyone. No downloads, no sign-ups — just click, share, and send the link.">
+  <title>ScreenCast — Instant Screen Sharing</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥</text></svg>">
+</head>
+<body>
+
+  <!-- Animated Background -->
+  <div class="bg-animation">
+    <div class="bg-orb"></div>
+    <div class="bg-orb"></div>
+    <div class="bg-orb"></div>
+  </div>
+
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header">
+      <a href="/" class="logo">
+        <div class="logo-icon">🖥</div>
+        <div class="logo-text"><span>Screen</span>Cast</div>
+      </a>
+      <div class="header-badge">
+        <span>⚡</span> Peer-to-Peer • Zero Latency
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="glass-card">
+
+        <!-- ═══ Pre-Share State ═══ -->
+        <div id="pre-share" class="pre-share">
+          <div class="hero-icon">🖥</div>
+          <h1 class="hero-title">Share Your Screen <span class="text-gradient">Instantly</span></h1>
+          <p class="hero-subtitle">
+            Share your browser tab, application window, or entire screen with anyone.
+            No downloads, no accounts — just a link.
+          </p>
+
+          <div class="features">
+            <div class="feature-chip">
+              <span class="icon">🖥</span> Screen & Tabs
+            </div>
+            <div class="feature-chip">
+              <span class="icon">🔗</span> Shareable Link
+            </div>
+            <div class="feature-chip">
+              <span class="icon">🔊</span> Audio Support
+            </div>
+            <div class="feature-chip">
+              <span class="icon">👥</span> Multi-Viewer
+            </div>
+          </div>
+
+          <button id="start-btn" class="btn btn-primary">
+            <span class="btn-icon-el">📺</span>
+            <span class="btn-text">Start Sharing</span>
+          </button>
+        </div>
+
+        <!-- ═══ Active Share State ═══ -->
+        <div id="active-share" class="active-share">
+
+          <!-- Live Header -->
+          <div class="live-header">
+            <div class="live-badge">
+              <div class="live-dot"></div>
+              LIVE
+            </div>
+            <div class="viewer-badge">
+              <span>👁</span>
+              <span><span id="viewer-count">0</span> viewer(s)</span>
+            </div>
+          </div>
+
+          <!-- Preview -->
+          <div class="preview-wrapper">
+            <video id="preview-video" class="preview-video" autoplay muted playsinline></video>
+            <div class="preview-overlay">
+              <div class="preview-tag">Preview</div>
+            </div>
+          </div>
+
+          <!-- Shareable Link -->
+          <div class="share-section">
+            <div class="share-label">
+              <span>🔗</span> Shareable Link
+            </div>
+            <div class="share-input-group">
+              <input type="text" id="share-link" class="share-input" readonly>
+              <button id="copy-btn" class="btn btn-ghost btn-sm" title="Copy link">
+                📋 Copy
+              </button>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="share-actions">
+            <button id="stop-btn" class="btn btn-danger">
+              <span class="btn-icon-el">⏹</span>
+              <span class="btn-text">Stop Sharing</span>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">
+    <span class="toast-icon">✅</span>
+    <span id="toast-message">Link copied!</span>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/presenter.js"></script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Viewer — Receive & Display Shared Screen via WebRTC
+   Handles: join room, receive offer, create answer, display remote stream
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+(() => {
+  'use strict';
+
+  const socket = io();
+
+  // ── State ────────────────────────────────────────────────────────────────
+  let peerConnection = null;
+  let remoteStream = null;
+  let hasAudio = false;
+
+  const ICE_CONFIG = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' }
+    ]
+  };
+
+  // ── DOM Elements ─────────────────────────────────────────────────────────
+  const connectingEl    = document.getElementById('connecting');
+  const endedEl         = document.getElementById('ended');
+  const streamContainer = document.getElementById('stream-container');
+  const viewerVideo     = document.getElementById('viewer-video');
+  const statusText      = document.getElementById('status-text');
+  const fullscreenBtn   = document.getElementById('fullscreen-btn');
+  const unmuteBanner    = document.getElementById('unmute-banner');
+  const unmuteBtn       = document.getElementById('unmute-btn');
+  const muteToggleBtn   = document.getElementById('mute-toggle-btn');
+
+  // ── Extract Room ID from URL ─────────────────────────────────────────────
+  const pathParts = window.location.pathname.split('/view/');
+  const roomId = pathParts.length > 1 ? pathParts[1].replace(/\//g, '') : null;
+
+  if (!roomId) {
+    showError('Invalid link. No room ID found in the URL.');
+  } else {
+    joinRoom(roomId);
+  }
+
+  // ── Join Room ────────────────────────────────────────────────────────────
+  function joinRoom(id) {
+    statusText.textContent = 'Joining the screen sharing session...';
+
+    socket.emit('join-room', id, (response) => {
+      if (response.error) {
+        showError(response.error);
+        return;
+      }
+      statusText.textContent = 'Connected! Waiting for stream...';
+    });
+  }
+
+  // ── Receive Offer from Presenter ─────────────────────────────────────────
+  socket.on('offer', async ({ senderId, offer }) => {
+    try {
+      peerConnection = new RTCPeerConnection(ICE_CONFIG);
+
+      // Create a fresh MediaStream to accumulate tracks
+      remoteStream = new MediaStream();
+      viewerVideo.srcObject = remoteStream;
+
+      // When remote track arrives, add it to our stream
+      peerConnection.ontrack = (event) => {
+        console.log(`Received track: kind=${event.track.kind}, id=${event.track.id}, readyState=${event.track.readyState}`);
+
+        // Add the track to our combined stream
+        remoteStream.addTrack(event.track);
+
+        if (event.track.kind === 'audio') {
+          hasAudio = true;
+        }
+
+        // Show the stream container
+        connectingEl.classList.add('hidden');
+        endedEl.classList.add('hidden');
+        streamContainer.classList.remove('hidden');
+
+        // Force play (video starts muted for autoplay compliance)
+        viewerVideo.play().then(() => {
+          console.log('Video playback started successfully');
+          // Show unmute banner if there's audio
+          if (hasAudio) {
+            unmuteBanner.classList.remove('hidden');
+            muteToggleBtn.textContent = '🔇';
+          }
+        }).catch(err => {
+          console.error('Autoplay failed:', err);
+          // Even muted play can fail in some edge cases — show a play button
+          unmuteBanner.classList.remove('hidden');
+          unmuteBtn.textContent = '▶ Click to Play';
+        });
+
+        // Update page title
+        document.title = 'ScreenCast — Live Stream';
+
+        // Listen for track ending
+        event.track.onended = () => {
+          console.log(`Track ended: ${event.track.kind}`);
+        };
+      };
+
+      // Send ICE candidates to the presenter
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit('ice-candidate', {
+            targetId: senderId,
+            candidate: event.candidate
+          });
+        }
+      };
+
+      // Log connection state
+      peerConnection.onconnectionstatechange = () => {
+        const state = peerConnection.connectionState;
+        console.log(`Connection state: ${state}`);
+        if (state === 'connected') {
+          console.log('WebRTC connection established!');
+        } else if (state === 'failed') {
+          showError('Connection failed. The presenter may have stopped sharing.');
+        } else if (state === 'disconnected') {
+          console.log('Peer disconnected, waiting for reconnection...');
+        }
+      };
+
+      // Set remote description (the offer) and create an answer
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+
+      // Send answer back to presenter
+      socket.emit('answer', {
+        targetId: senderId,
+        answer: peerConnection.localDescription
+      });
+
+    } catch (err) {
+      console.error('Error handling offer:', err);
+      showError('Failed to connect to the stream. Please try refreshing the page.');
+    }
+  });
+
+  // ── Receive ICE Candidate from Presenter ─────────────────────────────────
+  socket.on('ice-candidate', async ({ senderId, candidate }) => {
+    if (peerConnection) {
+      try {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error('ICE candidate error:', err);
+      }
+    }
+  });
+
+  // ── Stream Stopped ───────────────────────────────────────────────────────
+  socket.on('sharing-stopped', () => {
+    streamContainer.classList.add('hidden');
+    connectingEl.classList.add('hidden');
+    unmuteBanner.classList.add('hidden');
+    endedEl.classList.remove('hidden');
+
+    document.title = 'ScreenCast — Stream Ended';
+
+    if (peerConnection) {
+      peerConnection.close();
+      peerConnection = null;
+    }
+    remoteStream = null;
+  });
+
+  // ── Unmute / Mute Controls ───────────────────────────────────────────────
+  unmuteBtn.addEventListener('click', () => {
+    viewerVideo.muted = false;
+    viewerVideo.play().catch(() => {});
+    unmuteBanner.classList.add('hidden');
+    muteToggleBtn.textContent = '🔊';
+  });
+
+  muteToggleBtn.addEventListener('click', () => {
+    viewerVideo.muted = !viewerVideo.muted;
+    muteToggleBtn.textContent = viewerVideo.muted ? '🔇' : '🔊';
+  });
+
+  // ── Fullscreen Toggle ────────────────────────────────────────────────────
+  fullscreenBtn.addEventListener('click', () => {
+    const target = streamContainer;
+    if (!document.fullscreenElement) {
+      if (target.requestFullscreen) {
+        target.requestFullscreen();
+      } else if (target.webkitRequestFullscreen) {
+        target.webkitRequestFullscreen();
+      } else if (target.msRequestFullscreen) {
+        target.msRequestFullscreen();
+      }
+    } else {
+      document.exitFullscreen();
+    }
+  });
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function showError(message) {
+    connectingEl.classList.add('hidden');
+    streamContainer.classList.add('hidden');
+    unmuteBanner.classList.add('hidden');
+    endedEl.classList.remove('hidden');
+
+    const endedHeading = endedEl.querySelector('h2');
+    const endedText = endedEl.querySelector('p');
+
+    if (endedHeading) endedHeading.textContent = 'Unable to Connect';
+    if (endedText) endedText.textContent = message;
+  }
+
+})();

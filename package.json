@@ -1,0 +1,17 @@
+{
+  "name": "webrtc-screen-share",
+  "version": "1.0.0",
+  "description": "Real-time screen sharing app with shareable links using WebRTC",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "socket.io": "^4.7.5",
+    "uuid": "^10.0.0"
+  },
+  "keywords": ["webrtc", "screen-share", "real-time"],
+  "license": "MIT"
+}

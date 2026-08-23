@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: webrtc-screen-share
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production

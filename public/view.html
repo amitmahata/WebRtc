@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="View a shared screen in real-time via ScreenCast.">
+  <title>ScreenCast — Viewing Shared Screen</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
+</head>
+<body>
+
+  <!-- Animated Background -->
+  <div class="bg-animation">
+    <div class="bg-orb"></div>
+    <div class="bg-orb"></div>
+    <div class="bg-orb"></div>
+  </div>
+
+  <div class="viewer-container">
+
+    <!-- ═══ Connecting State ═══ -->
+    <div id="connecting" class="viewer-state">
+      <div class="spinner"></div>
+      <h2>Connecting...</h2>
+      <p id="status-text">Joining the screen sharing session</p>
+    </div>
+
+    <!-- ═══ Stream Ended State ═══ -->
+    <div id="ended" class="viewer-state hidden">
+      <div class="ended-icon">📺</div>
+      <h2>Stream Ended</h2>
+      <p>The presenter has stopped sharing their screen.</p>
+      <br>
+      <a href="/" class="btn btn-ghost btn-sm">Share Your Own Screen →</a>
+    </div>
+
+    <!-- ═══ Stream View ═══ -->
+    <div id="stream-container" class="stream-container hidden">
+      <video id="viewer-video" class="viewer-video" autoplay playsinline muted></video>
+
+      <!-- Unmute banner (shown when stream starts muted) -->
+      <div id="unmute-banner" class="unmute-banner hidden">
+        <button id="unmute-btn" class="btn btn-primary btn-sm">
+          🔊 Click to Enable Sound
+        </button>
+      </div>
+
+      <!-- Controls overlay (appears on hover) -->
+      <div class="viewer-controls">
+        <div class="viewer-live-badge">
+          <div class="live-dot"></div>
+          LIVE
+        </div>
+        <div class="viewer-controls-right">
+          <button id="mute-toggle-btn" class="btn btn-ghost btn-icon" title="Toggle audio">
+            🔇
+          </button>
+          <button id="fullscreen-btn" class="btn btn-ghost btn-icon" title="Toggle fullscreen">
+            ⛶
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/viewer.js"></script>
+</body>
+</html>
