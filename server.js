@@ -12,19 +12,26 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
+const PUBLIC_DIR = path.resolve(__dirname, 'public');
+
 // Health check endpoint for Render / cloud load balancers
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/css', express.static(path.join(__dirname, 'public', 'css')));
-app.use('/js', express.static(path.join(__dirname, 'public', 'js')));
+// Serve static assets
+app.use(express.static(PUBLIC_DIR));
+app.use('/css', express.static(path.resolve(PUBLIC_DIR, 'css')));
+app.use('/js', express.static(path.resolve(PUBLIC_DIR, 'js')));
+
+// Presenter homepage
+app.get('/', (req, res) => {
+  res.sendFile(path.resolve(PUBLIC_DIR, 'index.html'));
+});
 
 // Route for viewer page — serves view.html for any /view/:roomId URL
 app.get('/view/:roomId', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'view.html'));
+  res.sendFile(path.resolve(PUBLIC_DIR, 'view.html'));
 });
 
 // ─── Room Management ───────────────────────────────────────────────────────────
