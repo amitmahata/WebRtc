@@ -25,16 +25,20 @@ sequenceDiagram
     participant Server as Signaling Server (Node.js/Socket.IO)
     actor Viewer
 
-    Presenter->>Server: 1. create-room
+    Presenter->>Server: create-room
     Server-->>Presenter: Returns roomId & shareable link
-    Viewer->>Server: 2. join-room (roomId)
-    Server->>Presenter: 3. viewer-joined (viewerId)
-    Presenter->>Server: 4. offer (SDP)
-    Server->>Viewer: Relay offer
-    Viewer->>Server: 5. answer (SDP)
-    Server->>Presenter: Relay answer
-    Presenter<<-->>Viewer: 6. ICE Candidate Exchange (via Server)
-    Presenter==>>Viewer: 7. Direct WebRTC P2P Media Stream 🚀
+    Viewer->>Server: join-room (roomId)
+    Server->>Presenter: viewer-joined (viewerId)
+    Presenter->>Server: send offer (SDP)
+    Server->>Viewer: relay offer
+    Viewer->>Server: send answer (SDP)
+    Server->>Presenter: relay answer
+    Presenter->>Server: send ICE candidates
+    Server->>Viewer: relay ICE candidates
+    Viewer->>Server: send ICE candidates
+    Server->>Presenter: relay ICE candidates
+    Note over Presenter,Viewer: Direct WebRTC P2P Media Stream Established
+    Presenter->>Viewer: Stream Audio & Video
 ```
 
 ---
