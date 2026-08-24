@@ -80,26 +80,96 @@
     });
   }
 
+  // Helper to detect mobile/tablet (iOS, iPadOS, Android)
+  function isMobileOrTablet() {
+    return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  // Multi-tier screen capture fallback for Cross-Platform compatibility (Windows, Mac, iPad, iPhone, Android)
+  async function requestScreenCapture() {
+    // Check if mediaDevices API is available (requires HTTPS or localhost)
+    if (!navigator.mediaDevices) {
+      throw new Error('Media capture requires a secure HTTPS connection or localhost.');
+    }
+
+    const isMobile = isMobileOrTablet();
+
+    // 1. If getDisplayMedia is supported:
+    if (navigator.mediaDevices.getDisplayMedia) {
+      if (isMobile) {
+        // Mobile / iPad Safari / Android: Do NOT pass audio or desktop-specific constraints
+        try {
+          return await navigator.mediaDevices.getDisplayMedia({
+            video: true
+          });
+        } catch (mobileErr) {
+          console.warn('Mobile getDisplayMedia({ video: true }) failed:', mobileErr);
+          if (mobileErr.name === 'NotAllowedError' || mobileErr.name === 'AbortError') {
+            throw mobileErr;
+          }
+        }
+      } else {
+        // Desktop: Try with audio and browser tab hints
+        try {
+          return await navigator.mediaDevices.getDisplayMedia({
+            video: {
+              cursor: 'always',
+              displaySurface: 'browser'
+            },
+            audio: true
+          });
+        } catch (desktopErr) {
+          console.warn('Desktop getDisplayMedia with audio failed, falling back to clean video:', desktopErr);
+          if (desktopErr.name === 'NotAllowedError' || desktopErr.name === 'AbortError') {
+            throw desktopErr;
+          }
+          // Fallback to video only
+          try {
+            return await navigator.mediaDevices.getDisplayMedia({ video: true });
+          } catch (fallbackErr) {
+            if (fallbackErr.name === 'NotAllowedError' || fallbackErr.name === 'AbortError') {
+              throw fallbackErr;
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Camera feed fallback for mobile in-app browsers / devices without getDisplayMedia
+    if (navigator.mediaDevices.getUserMedia) {
+      const wantCamera = confirm('Native screen sharing is not supported in this mobile browser. Would you like to share your camera feed instead?');
+      if (wantCamera) {
+        return await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+          audio: true
+        });
+      }
+    }
+
+    throw new Error('Screen sharing is not supported in this browser. Please open in Safari (iOS/iPad) or Chrome (Android).');
+  }
+
   // ── Start Sharing ────────────────────────────────────────────────────────
   startBtn.addEventListener('click', async () => {
     try {
-      // Ensure socket is connected before requesting screen
+      // CRITICAL FOR SAFARI / IPAD / MOBILE:
+      // Must request getDisplayMedia synchronously in the click call stack WITHOUT prior await
+      // to preserve transient user activation gesture!
+      const stream = await requestScreenCapture();
+      localStream = stream;
+
+      // Show preview with mobile inline autoplay compliance
+      previewVideo.muted = true;
+      previewVideo.playsInline = true;
+      previewVideo.srcObject = localStream;
+      previewVideo.play().catch(e => console.warn('Preview video play warning:', e));
+
+      // Ensure socket is connected before emitting room creation
       if (!socket.connected) {
         showToast('Connecting to server...', '⏳');
         await ensureConnected();
       }
-
-      // Request screen/tab/window capture
-      localStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          cursor: 'always',
-          displaySurface: 'browser'
-        },
-        audio: true
-      });
-
-      // Show preview
-      previewVideo.srcObject = localStream;
 
       // Create a room on the signaling server
       socket.emit('create-room', ({ roomId }) => {
@@ -116,12 +186,15 @@
       });
 
       // If user clicks the browser-native "Stop sharing" button
-      localStream.getVideoTracks()[0].addEventListener('ended', () => {
-        stopSharing();
-      });
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.addEventListener('ended', () => {
+          stopSharing();
+        });
+      }
 
     } catch (err) {
-      if (err.name !== 'NotAllowedError') {
+      if (err.name !== 'NotAllowedError' && err.name !== 'AbortError') {
         console.error('Screen share error:', err);
         showToast(err.message || 'Failed to start screen sharing. Please try again.', '❌');
       }
