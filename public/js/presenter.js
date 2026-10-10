@@ -65,8 +65,24 @@
     socket,
     iceConfig: ICE_CONFIG,
     micButton: document.getElementById('mic-toggle-btn'),
-    onError: (msg) => showToast(msg, '🎙️')
+    onError: (msg) => showToast(msg, '🎙️'),
+    onStateChange: renderVoiceStatus
   });
+
+  // Studio header pill mirroring the mic state
+  function renderVoiceStatus(state) {
+    const pill = document.getElementById('voice-status');
+    if (!pill) return;
+    const text = {
+      off:     'Voice off',
+      on:      "You're live on voice",
+      muted:   'Muted — press M',
+      blocked: 'Mic blocked'
+    }[state];
+    pill.dataset.state = state;
+    pill.querySelector('.stat-icon').textContent = state === 'muted' ? '🔇' : state === 'blocked' ? '🚫' : '🎙️';
+    pill.querySelector('.stat-text').textContent = text;
+  }
 
   // ── Chat State ───────────────────────────────────────────────────────────
   let currentRoomId = null;

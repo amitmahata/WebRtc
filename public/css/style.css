@@ -455,6 +455,38 @@ body {
   left: 18px;
 }
 
+.chip-top-right {
+  top: 18px;
+  right: 18px;
+  animation-delay: -3s;
+}
+
+/* Animated equalizer bars for the "Voice Live" chip */
+.voice-eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 16px;
+}
+
+.voice-eq span {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent-emerald);
+  transform-origin: bottom;
+  animation: voiceEq 1s ease-in-out infinite;
+}
+
+.voice-eq span:nth-child(2) { animation-delay: -0.3s; }
+.voice-eq span:nth-child(3) { animation-delay: -0.6s; }
+.voice-eq span:nth-child(4) { animation-delay: -0.15s; }
+
+@keyframes voiceEq {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
 .chip-bottom-left {
   bottom: 18px;
   left: 18px;
@@ -608,6 +640,34 @@ body {
   transform: translateY(-3px);
 }
 
+.feature-box-highlight {
+  border-color: rgba(16, 185, 129, 0.3);
+  background:
+    linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(6, 182, 212, 0.04)),
+    var(--bg-card);
+}
+
+.feature-new-badge {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: var(--accent-emerald);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.feature-tag-voice {
+  border-color: rgba(16, 185, 129, 0.35);
+  color: var(--accent-emerald);
+}
+
 .feature-box-icon {
   font-size: 28px;
   margin-bottom: 4px;
@@ -694,6 +754,12 @@ body {
   font-weight: 800;
   color: #f87171;
   letter-spacing: 0.08em;
+}
+
+.studio-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .stat-pill {
@@ -1285,8 +1351,78 @@ body {
 .mic-toggle-btn.mic-on {
   background: var(--accent-emerald);
   border-color: transparent;
-  box-shadow: 0 6px 28px rgba(16, 185, 129, 0.5);
-  animation: micPulse 2s infinite;
+  /* Ring grows with the live input level (set from voice.js) */
+  box-shadow:
+    0 0 0 calc(var(--mic-level, 0) * 14px) rgba(16, 185, 129, 0.35),
+    0 6px 28px rgba(16, 185, 129, 0.5);
+  transition: transform var(--transition-smooth), background var(--transition-base);
+}
+
+.mic-toggle-btn.mic-muted {
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fcd34d;
+}
+
+.mic-kbd {
+  display: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: inherit;
+  opacity: 0.85;
+}
+
+.mic-toggle-btn.mic-on .mic-kbd,
+.mic-toggle-btn.mic-muted .mic-kbd {
+  display: inline-block;
+}
+
+/* Inline keyboard hints in copy */
+kbd {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8em;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+}
+
+/* Studio voice status pill */
+.voice-pill {
+  background: rgba(100, 116, 139, 0.12);
+  border-color: rgba(100, 116, 139, 0.3);
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+}
+
+.voice-pill[data-state="on"] {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: var(--accent-emerald);
+}
+
+.voice-pill[data-state="muted"] {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: var(--accent-amber);
+}
+
+.voice-pill[data-state="blocked"] {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.35);
+  color: #fb7185;
+}
+
+.connecting-hint {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .mic-toggle-btn.mic-blocked {
@@ -1299,10 +1435,6 @@ body {
   cursor: wait;
 }
 
-@keyframes micPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
-  50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-}
 
 /* ── Utility Classes ──────────────────────────────────────────────────────── */
 .hidden {
@@ -1365,6 +1497,19 @@ body {
 
   .share-input-row {
     flex-direction: column;
+  }
+
+  .studio-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .studio-stats {
+    flex-wrap: wrap;
+  }
+
+  .chip-top-right {
+    display: none;
   }
 
   .mic-toggle-btn {
