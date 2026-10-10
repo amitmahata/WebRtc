@@ -60,6 +60,14 @@
   const chatUnreadBadge      = document.getElementById('chat-unread');
   const downloadTranscriptBtn = document.getElementById('download-transcript-btn');
 
+  // ── Real-Time Voice (everyone in the room can talk) ──────────────────────
+  const voice = window.createVoiceChat({
+    socket,
+    iceConfig: ICE_CONFIG,
+    micButton: document.getElementById('mic-toggle-btn'),
+    onError: (msg) => showToast(msg, '🎙️')
+  });
+
   // ── Chat State ───────────────────────────────────────────────────────────
   let currentRoomId = null;
   let chatHistory = [];
@@ -171,6 +179,9 @@
         await ensureConnected();
       }
 
+      // Pick up TURN servers (if configured) before any peer connection is made
+      await window.loadIceServers(ICE_CONFIG);
+
       // Create a room on the signaling server
       socket.emit('create-room', ({ roomId }) => {
         currentRoomId = roomId;
@@ -181,6 +192,8 @@
         preShareEl.classList.add('hidden');
         activeShareEl.classList.add('visible');
         chatToggleBtn.classList.remove('hidden');
+        voice.show();
+        voice.autoJoin();
 
         showToast('Screen sharing live! Link generated.', '🚀');
       });
@@ -457,6 +470,7 @@
     // Close all peer connections
     peerConnections.forEach(pc => pc.close());
     peerConnections.clear();
+    voice.closeAll();
 
     // Stop all media tracks
     if (localStream) {

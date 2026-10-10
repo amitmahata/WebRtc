@@ -269,6 +269,12 @@
 
   </div>
 
+  <!-- Floating Mic Toggle Button (real-time voice) -->
+  <button id="mic-toggle-btn" class="mic-toggle-btn hidden" title="Turn microphone on">
+    <span class="mic-icon">🎙️</span>
+    <span class="mic-label">Join Voice</span>
+  </button>
+
   <!-- Floating Chat Toggle Button -->
   <button id="chat-toggle-btn" class="chat-toggle-btn hidden" title="Open Live Chat">
     <span>💬 Live Chat</span>
@@ -311,6 +317,7 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/voice.js"></script>
   <script src="/js/presenter.js"></script>
 </body>
 </html>

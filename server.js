@@ -25,6 +25,18 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
+// Optional TURN relay for peers behind strict NATs / firewalls (used by screen
+// share and voice). Configure via env, e.g.
+//   TURN_URLS=turn:turn.example.com:3478,turns:turn.example.com:5349
+//   TURN_USERNAME=...  TURN_CREDENTIAL=...
+app.get('/api/ice-servers', (req, res) => {
+  const urls = (process.env.TURN_URLS || '').split(',').map(u => u.trim()).filter(Boolean);
+  const iceServers = urls.length
+    ? [{ urls, username: process.env.TURN_USERNAME, credential: process.env.TURN_CREDENTIAL }]
+    : [];
+  res.set('Cache-Control', 'no-store').json({ iceServers });
+});
+
 // Serve static assets
 app.use(express.static(PUBLIC_DIR));
 app.use('/css', express.static(path.resolve(PUBLIC_DIR, 'css')));
@@ -81,7 +93,10 @@ io.on('connection', (socket) => {
     });
 
     console.log(`👁 Viewer ${socket.id} joined room ${roomId} (${room.viewers.size} viewers)`);
-    callback({ success: true });
+
+    // Everyone already in the room — the newcomer opens a voice connection to each
+    const peers = [room.presenterId, ...room.viewers].filter(id => id !== socket.id);
+    callback({ success: true, peers });
   });
 
   // ── WebRTC Signaling Relay ────────────────────────────────────────────────
@@ -96,6 +111,24 @@ io.on('connection', (socket) => {
 
   socket.on('ice-candidate', ({ targetId, candidate }) => {
     io.to(targetId).emit('ice-candidate', { senderId: socket.id, candidate });
+  });
+
+  // ── Voice Signaling Relay (audio mesh, only between members of one room) ──
+  function inSameRoom(targetId) {
+    const room = rooms.get(socket.roomId);
+    return !!room && (room.presenterId === targetId || room.viewers.has(targetId));
+  }
+
+  socket.on('voice-offer', ({ targetId, offer }) => {
+    if (inSameRoom(targetId)) io.to(targetId).emit('voice-offer', { senderId: socket.id, offer });
+  });
+
+  socket.on('voice-answer', ({ targetId, answer }) => {
+    if (inSameRoom(targetId)) io.to(targetId).emit('voice-answer', { senderId: socket.id, answer });
+  });
+
+  socket.on('voice-ice', ({ targetId, candidate }) => {
+    if (inSameRoom(targetId)) io.to(targetId).emit('voice-ice', { senderId: socket.id, candidate });
   });
 
   // ── Real-Time Chat Relay ──────────────────────────────────────────────────
@@ -151,6 +184,8 @@ io.on('connection', (socket) => {
         viewerId: socket.id,
         viewerCount: room.viewers.size
       });
+      // Everyone else tears down their voice connection to this viewer
+      socket.to(roomId).emit('participant-left', { participantId: socket.id });
       console.log(`👁 Viewer left room ${roomId} (${room.viewers.size} remaining)`);
     }
   });
