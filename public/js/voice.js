@@ -26,12 +26,13 @@ window.loadIceServers = function loadIceServers(iceConfig) {
   return iceConfig.__loading;
 };
 
-window.createVoiceChat = function createVoiceChat({ socket, iceConfig, micButton, onError }) {
+window.createVoiceChat = function createVoiceChat({ socket, iceConfig, micButton, onError, onStateChange }) {
   const peers = new Map();             // peerId → { pc, sender, audioEl, candidates: [] }
   const earlyCandidates = new Map();   // peerId → candidates that arrived before the offer
   let micStream = null;
   let micState = 'off';                // 'off' | 'on' | 'muted' | 'blocked'
   let autoJoinTried = false;
+  let meter = null;                    // { ctx, raf } — drives the mic level ring
 
   function micTrack() {
     return micStream ? micStream.getAudioTracks()[0] : null;
@@ -179,6 +180,42 @@ window.createVoiceChat = function createVoiceChat({ socket, iceConfig, micButton
     });
     const track = micTrack();
     await Promise.all([...peers.values()].map(p => p.sender && p.sender.replaceTrack(track).catch(() => {})));
+    startMeter();
+  }
+
+  // Live input level → --mic-level (0..1) on the mic button, so people can
+  // see their mic is actually picking them up.
+  function startMeter() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (meter || !micButton || !AudioCtx) return;
+    const ctx = new AudioCtx();
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    ctx.createMediaStreamSource(micStream).connect(analyser);
+    const data = new Uint8Array(analyser.fftSize);
+    let level = 0;
+
+    const tick = () => {
+      analyser.getByteTimeDomainData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const v = (data[i] - 128) / 128;
+        sum += v * v;
+      }
+      const target = micState === 'on' ? Math.min(1, Math.sqrt(sum / data.length) * 6) : 0;
+      level += (target - level) * (target > level ? 0.5 : 0.15); // fast attack, slow release
+      micButton.style.setProperty('--mic-level', level.toFixed(3));
+      meter.raf = requestAnimationFrame(tick);
+    };
+    meter = { ctx, raf: requestAnimationFrame(tick) };
+  }
+
+  function stopMeter() {
+    if (!meter) return;
+    cancelAnimationFrame(meter.raf);
+    meter.ctx.close().catch(() => {});
+    meter = null;
+    if (micButton) micButton.style.removeProperty('--mic-level');
   }
 
   async function setMic(enabled) {
@@ -224,9 +261,11 @@ window.createVoiceChat = function createVoiceChat({ socket, iceConfig, micButton
   };
 
   function renderMicButton() {
+    if (onStateChange) onStateChange(micState);
     if (!micButton) return;
     const ui = MIC_UI[micState];
     micButton.classList.toggle('mic-on', micState === 'on');
+    micButton.classList.toggle('mic-muted', micState === 'muted');
     micButton.classList.toggle('mic-blocked', micState === 'blocked');
     micButton.title = ui.title;
     micButton.querySelector('.mic-icon').textContent = ui.icon;
@@ -267,6 +306,8 @@ window.createVoiceChat = function createVoiceChat({ socket, iceConfig, micButton
     peers.forEach(p => {
       if (p.audioEl.srcObject && p.audioEl.paused) p.audioEl.play().catch(() => {});
     });
+    // Some browsers create the meter's AudioContext suspended until a gesture
+    if (meter && meter.ctx.state === 'suspended') meter.ctx.resume().catch(() => {});
   }
   document.addEventListener('click', resumeAudio);
   document.addEventListener('touchend', resumeAudio);
@@ -277,6 +318,7 @@ window.createVoiceChat = function createVoiceChat({ socket, iceConfig, micButton
 
   function closeAll() {
     [...peers.keys()].forEach(closePeer);
+    stopMeter();
     // Release the device so the browser's "mic in use" indicator turns off
     if (micStream) {
       micStream.getTracks().forEach(t => t.stop());

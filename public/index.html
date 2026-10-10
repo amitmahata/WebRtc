@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="InstaScreen — Zero-meeting instant screen sharing. Share your screen or tabs in 1 click with a shareable link. No signups, no downloads.">
+  <meta name="description" content="InstaScreen — Zero-meeting instant screen sharing. Share your screen or tabs in 1 click with a shareable link and talk live with built-in group voice. No signups, no downloads.">
   <title>InstaScreen — Instant Screen Sharing Without Meetings</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
@@ -48,7 +48,7 @@
           <div class="hero-copy-col">
             <div class="hero-pill-badge">
               <span class="badge-sparkle">✨</span>
-              <span>Pure WebRTC • Zero Lag • Free Forever</span>
+              <span>Pure WebRTC • Live Voice • Free Forever</span>
             </div>
 
             <h1 class="hero-main-title">
@@ -57,7 +57,8 @@
             </h1>
 
             <p class="hero-description">
-              Stream your browser tab, code editor, design file, or desktop directly to anyone via an instant link. 
+              Stream your browser tab, code editor, design file, or desktop directly to anyone via an instant link —
+              and talk it through with built-in group voice.
               <strong>No Zoom calls. No calendar invites. No software to install.</strong>
             </p>
 
@@ -68,6 +69,9 @@
               </div>
               <div class="feature-tag">
                 <span class="tag-icon">🔒</span> End-to-End Encrypted
+              </div>
+              <div class="feature-tag feature-tag-voice">
+                <span class="tag-icon">🎙️</span> Live Group Voice
               </div>
               <div class="feature-tag">
                 <span class="tag-icon">🔊</span> Tab Audio Capture
@@ -106,6 +110,14 @@
                 <div class="chip-content">
                   <span class="chip-title">Ultra HD Stream</span>
                   <span class="chip-sub">60 FPS • 1080p WebRTC</span>
+                </div>
+              </div>
+
+              <div class="floating-chip chip-top-right">
+                <div class="voice-eq" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                <div class="chip-content">
+                  <span class="chip-title">Voice Live</span>
+                  <span class="chip-sub">Everyone can talk</span>
                 </div>
               </div>
 
@@ -154,8 +166,8 @@
             <div class="step-card">
               <div class="step-num">03</div>
               <div class="step-icon-box">⚡</div>
-              <h3 class="step-title">Watch & Chat in Real-Time</h3>
-              <p class="step-desc">Your viewers open the link in any browser and watch live at zero latency without creating an account.</p>
+              <h3 class="step-title">Watch, Talk & Chat Live</h3>
+              <p class="step-desc">Viewers open the link in any browser and watch live. Mics join automatically so everyone can talk — press <kbd>M</kbd> to mute.</p>
             </div>
           </div>
         </section>
@@ -168,6 +180,18 @@
           </div>
 
           <div class="features-grid-cards">
+            <div class="feature-box feature-box-highlight">
+              <div class="feature-box-icon">🎙️</div>
+              <h4>Built-In Group Voice <span class="feature-new-badge">New</span></h4>
+              <p>Everyone in the session can speak — presenter and viewers alike. No separate call, no extra link. Mics auto-join and mute with a single key.</p>
+            </div>
+
+            <div class="feature-box">
+              <div class="feature-box-icon">🎧</div>
+              <h4>Crystal-Clear Audio</h4>
+              <p>Echo cancellation, noise suppression and auto gain are on by default, with a live level meter so you always know your mic is working.</p>
+            </div>
+
             <div class="feature-box">
               <div class="feature-box-icon">🚀</div>
               <h4>Direct P2P Streaming</h4>
@@ -213,6 +237,10 @@
                 <span class="stat-icon">👁️</span>
                 <span class="stat-text"><strong id="viewer-count">0</strong> viewer(s) connected</span>
               </div>
+              <div id="voice-status" class="stat-pill voice-pill" data-state="off">
+                <span class="stat-icon">🎙️</span>
+                <span class="stat-text">Voice off</span>
+              </div>
             </div>
           </div>
 
@@ -237,7 +265,7 @@
               </button>
             </div>
             <div class="share-quick-hint">
-              Send this link to anyone over Slack, Teams, or WhatsApp to let them view immediately.
+              Send this link to anyone over Slack, Teams, or WhatsApp — they can watch and talk with you immediately. Press <kbd>M</kbd> to mute or unmute.
             </div>
           </div>
 
@@ -273,6 +301,7 @@
   <button id="mic-toggle-btn" class="mic-toggle-btn hidden" title="Turn microphone on">
     <span class="mic-icon">🎙️</span>
     <span class="mic-label">Join Voice</span>
+    <kbd class="mic-kbd">M</kbd>
   </button>
 
   <!-- Floating Chat Toggle Button -->
