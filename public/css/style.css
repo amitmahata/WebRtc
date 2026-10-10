@@ -1253,6 +1253,57 @@ body {
   color: var(--text-muted);
 }
 
+/* ── Voice / Mic Toggle ───────────────────────────────────────────────────── */
+.mic-toggle-btn {
+  position: fixed;
+  bottom: 28px;
+  left: 28px;
+  z-index: 999;
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text-primary);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  padding: 13px 22px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35);
+  transition: all var(--transition-smooth);
+}
+
+.mic-toggle-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  border-color: var(--border-glass-hover);
+}
+
+.mic-toggle-btn.mic-on {
+  background: var(--accent-emerald);
+  border-color: transparent;
+  box-shadow: 0 6px 28px rgba(16, 185, 129, 0.5);
+  animation: micPulse 2s infinite;
+}
+
+.mic-toggle-btn.mic-blocked {
+  border-color: rgba(244, 63, 94, 0.6);
+  color: #fda4af;
+}
+
+.mic-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+}
+
 /* ── Utility Classes ──────────────────────────────────────────────────────── */
 .hidden {
   display: none !important;
@@ -1314,6 +1365,12 @@ body {
 
   .share-input-row {
     flex-direction: column;
+  }
+
+  .mic-toggle-btn {
+    bottom: 20px;
+    left: 16px;
+    padding: 12px 18px;
   }
 
   .chat-drawer {

@@ -16,7 +16,8 @@
   socket.on('connect', () => {
     console.log('✅ Viewer connected to signaling server:', socket.id);
     if (roomId) {
-      joinRoom(roomId);
+      // Pick up TURN servers (if configured) before any peer connection is made
+      window.loadIceServers(ICE_CONFIG).then(() => joinRoom(roomId));
     }
   });
 
@@ -66,6 +67,14 @@
   const chatUnreadBadge      = document.getElementById('chat-unread');
   const downloadTranscriptBtn = document.getElementById('download-transcript-btn');
 
+  // ── Real-Time Voice (everyone in the room can talk) ──────────────────────
+  const voice = window.createVoiceChat({
+    socket,
+    iceConfig: ICE_CONFIG,
+    micButton: document.getElementById('mic-toggle-btn'),
+    onError: (msg) => alert(msg)
+  });
+
   // ── Chat State ───────────────────────────────────────────────────────────
   let chatHistory = [];
   let unreadCount = 0;
@@ -92,6 +101,11 @@
       }
       statusText.textContent = 'Connected to room! Establishing peer stream...';
       if (chatToggleBtn) chatToggleBtn.classList.remove('hidden');
+
+      // Open voice connections to everyone already in the room
+      voice.show();
+      voice.connectTo(response.peers || []);
+      voice.autoJoin();
     });
   }
 
@@ -378,6 +392,7 @@
       peerConnection = null;
     }
     remoteStream = null;
+    voice.closeAll();
   });
 
   // ── Unmute / Mute Controls ───────────────────────────────────────────────
